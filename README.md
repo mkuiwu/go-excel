@@ -8,7 +8,7 @@
 # 目录结构说明
 <table>
     <tr>
-        <td><img src="效果图/7-目录结构说明.jpg"/></td>
+        <td><img src="效果图/8-目录结构说明.jpg"/></td>
     </tr>
 </table>
 
@@ -45,5 +45,9 @@
     <tr>
         <td>纵向合并导出</td>
         <td><img src="效果图/6-纵向合并单元格导出2.jpg" width="1000"/></td>
+    </tr>
+    <tr>
+        <td>模板导出</td>
+        <td><img src="效果图/7-模板导出.jpg" width="1000"/></td>
     </tr>
 </table>
