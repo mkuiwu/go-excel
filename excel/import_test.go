@@ -8,7 +8,7 @@ import (
 )
 
 // 导入测试
-func Test_Import(t *testing.T) {
+func TestImport(t *testing.T) {
 	// 这里需要注意：excelize 不支持xls格式的excel文件，如果是xls格式，会报错提示：不支持的工作簿文件格式
 	f, err := excelize.OpenFile(basePath() + "1.xlsx")
 	if err != nil {
