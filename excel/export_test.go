@@ -18,6 +18,11 @@ type TestStruct struct {
 	Remark   int    `excel:"name:备注;replace:1_超级管理员,2_普通用户;width:40;"`
 }
 
+type TestConvertStruct struct {
+	Id   string `excel:"name:用户账号;convert:FormatDataToFloat64;"`
+	Name string `excel:"name:用户姓名;"`
+}
+
 // =============================== excel 导入、导出测试 ===============================
 // 要导出的列表
 var testList = []TestStruct{
@@ -44,6 +49,27 @@ func TestExportSheet(t *testing.T) {
 		return
 	}
 	f.Path = basePath() + "单个sheet导出.xlsx"
+	if err := f.Save(); err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("Excel文件已生成")
+}
+
+// 测试转换函数
+func TestConvert(t *testing.T) {
+	// 获取导出的数据
+	dataList := []TestConvertStruct{
+		{"1.23333", "白夜"},
+		{"测试数据", "黑日"},
+	}
+	//单个sheet导出
+	f, err := NormalDynamicExport("Sheet1", "用户信息", "", true, false, dataList, nil)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	f.Path = basePath() + "转换函数导出.xlsx"
 	if err := f.Save(); err != nil {
 		fmt.Println(err)
 		return

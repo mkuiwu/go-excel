@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"github.com/xuri/excelize/v2"
+	"go-excel/excel/convert"
 	"go-excel/excel/model"
 	"html/template"
 	"os"
@@ -250,13 +251,10 @@ func normalBuildDataRow(e *model.Excel, sheet, endColName, fields string, row in
 			}
 			var dataCol model.ExcelTag
 			err = dataCol.GetTag(tagVal)
-			fieldData := item.FieldByName(dataField.Name) // 取字段值
-			if fieldData.Type().String() == "string" {    // string类型的才计算长度
-				rwsTemp := fieldData.Len() // 当前单元格内容的长度
-				if rwsTemp > maxLen {      //这里取每一行中的每一列字符长度最大的那一列的字符
-					maxLen = rwsTemp
-				}
+			if err != nil {
+				return
 			}
+			fieldData := item.FieldByName(dataField.Name) // 取字段值
 			// 替换
 			if dataCol.Replace != "" {
 				split := strings.Split(dataCol.Replace, ",")
@@ -278,8 +276,15 @@ func normalBuildDataRow(e *model.Excel, sheet, endColName, fields string, row in
 			} else {
 				dataCol.Value = fieldData
 			}
-			if err != nil {
-				return
+			// 转换函数
+			if dataCol.Convert != "" && convert.BaseConvertMap[dataCol.Convert] != nil {
+				dataCol.Value = convert.BaseConvertMap[dataCol.Convert](fieldData)
+			}
+			if fieldData.Type().String() == "string" { // string类型的才计算长度
+				rwsTemp := fieldData.Len() // 当前单元格内容的长度
+				if rwsTemp > maxLen {      //这里取每一行中的每一列字符长度最大的那一列的字符
+					maxLen = rwsTemp
+				}
 			}
 			exportRow = append(exportRow, dataCol)
 		}

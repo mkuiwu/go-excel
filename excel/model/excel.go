@@ -16,7 +16,7 @@ import (
 // 定义正则表达式模式
 const (
 	ExcelTagKey = "excel"
-	Pattern     = "name:(.*?);|index:(.*?);|width:(.*?);|replace:(.*?);"
+	Pattern     = "name:(.*?);|index:(.*?);|width:(.*?);|replace:(.*?);|convert:(.*?);"
 )
 
 // 自定义一个tag结构体
@@ -26,6 +26,7 @@ type ExcelTag struct {
 	Index   int    // 列下标(从0开始)
 	Width   int    // 列宽
 	Replace string // 替换（需要替换的内容_替换后的内容。比如：1_未开始 ==> 表示1替换为未开始）
+	Convert string // 转换方法名
 }
 
 // 构造函数，返回一个带有默认值的 ExcelTag 实例
@@ -44,9 +45,10 @@ func (e *ExcelTag) GetTag(tag string) (err error) {
 	matches := re.FindAllStringSubmatch(tag, -1)
 	if len(matches) > 0 {
 		for _, match := range matches {
-			for i, val := range match {
-				if i != 0 && val != "" {
-					e.setValue(match, val)
+			if len(match) > 0 {
+				split := strings.Split(match[0], ":")
+				if len(split) == 2 {
+					e.setValue(split[0], strings.Replace(split[1], ";", "", -1))
 				}
 			}
 		}
@@ -58,24 +60,23 @@ func (e *ExcelTag) GetTag(tag string) (err error) {
 }
 
 // 设置ExcelTag 对应字段的值
-func (e *ExcelTag) setValue(tag []string, value string) {
-	if strings.Contains(tag[0], "name") {
+func (e *ExcelTag) setValue(tag string, value string) {
+	if strings.Contains(tag, "name") {
 		e.Name = value
 	}
-	if strings.Contains(tag[0], "index") {
+	if strings.Contains(tag, "index") {
 		v, _ := strconv.ParseInt(value, 10, 8)
 		e.Index = int(v)
 	}
-	if strings.Contains(tag[0], "width") {
+	if strings.Contains(tag, "width") {
 		v, _ := strconv.ParseInt(value, 10, 8)
 		e.Width = int(v)
 	}
-	/*if strings.Contains(tag[0], "needMerge") {
-		v, _ := strconv.ParseBool(value)
-		e.NeedMerge = v
-	}*/
-	if strings.Contains(tag[0], "replace") {
+	if strings.Contains(tag, "replace") {
 		e.Replace = value
+	}
+	if strings.Contains(tag, "convert") {
+		e.Convert = value
 	}
 }
 
