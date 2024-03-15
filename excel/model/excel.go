@@ -19,7 +19,7 @@ const (
 	Pattern     = "name:(.*?);|index:(.*?);|width:(.*?);|replace:(.*?);|convert:(.*?);"
 )
 
-// 自定义一个tag结构体
+// ExcelTag 自定义一个tag结构体
 type ExcelTag struct {
 	Value   interface{}
 	Name    string // 表头标题
@@ -29,7 +29,7 @@ type ExcelTag struct {
 	Convert string // 转换方法名
 }
 
-// 构造函数，返回一个带有默认值的 ExcelTag 实例
+// NewExcelTag 构造函数，返回一个带有默认值的 ExcelTag 实例
 func NewExcelTag() ExcelTag {
 	return ExcelTag{
 		// 导入时会根据这个下标来拿单元格的值，当目标结构体字段没有设置index时，
@@ -38,7 +38,7 @@ func NewExcelTag() ExcelTag {
 	}
 }
 
-// 读取字段tag值
+// GetTag 读取字段tag值
 func (e *ExcelTag) GetTag(tag string) (err error) {
 	// 编译正则表达式
 	re := regexp.MustCompile(Pattern)
@@ -59,7 +59,7 @@ func (e *ExcelTag) GetTag(tag string) (err error) {
 	return
 }
 
-// 设置ExcelTag 对应字段的值
+// setValue 设置ExcelTag 对应字段的值
 func (e *ExcelTag) setValue(tag string, value string) {
 	if strings.Contains(tag, "name") {
 		e.Name = value
@@ -80,7 +80,7 @@ func (e *ExcelTag) setValue(tag string, value string) {
 	}
 }
 
-// 自定义一个excel对象结构体
+// Excel 自定义一个excel对象结构体
 type Excel struct {
 	F             *excelize.File // excel 对象
 	TitleStyle    int            // 表头样式
@@ -89,16 +89,22 @@ type Excel struct {
 	ContentStyle2 int            // 主体样式2，有背景色
 }
 
-// 初始化
-func ExcelInit() (e *Excel) {
+// NewExcel 初始化
+func NewExcel() (e *Excel) {
 	e = &Excel{}
 	// excel构建
 	e.F = excelize.NewFile()
-	// 初始化样式
-	e.getTitleRowStyle()
-	e.getHeadRowStyle()
-	e.getDataRowStyle()
 	return e
+}
+
+// SetDefaultStyle
+//
+//	@Description:  设置默认样式
+//	@receiver e
+func (e *Excel) SetDefaultStyle() {
+	e.SetTitleRowStyle()
+	e.SetHeadRowStyle()
+	e.SetDataRowStyle()
 }
 
 // ===================================== 设置样式 =====================================
@@ -113,8 +119,8 @@ func getBorder() []excelize.Border {
 	}
 }
 
-// 标题样式
-func (e *Excel) getTitleRowStyle() {
+// SetTitleRowStyle 标题样式
+func (e *Excel) SetTitleRowStyle() {
 	e.TitleStyle, _ = e.F.NewStyle(&excelize.Style{
 		Alignment: &excelize.Alignment{ // 对齐方式
 			Horizontal: "center", // 水平对齐居中
@@ -133,8 +139,8 @@ func (e *Excel) getTitleRowStyle() {
 	})
 }
 
-// 列头行样式
-func (e *Excel) getHeadRowStyle() {
+// SetHeadRowStyle 列头行样式
+func (e *Excel) SetHeadRowStyle() {
 	e.HeadStyle, _ = e.F.NewStyle(&excelize.Style{
 		Alignment: &excelize.Alignment{ // 对齐方式
 			Horizontal: "center", // 水平对齐居中
@@ -154,8 +160,8 @@ func (e *Excel) getHeadRowStyle() {
 	})
 }
 
-// 数据行样式
-func (e *Excel) getDataRowStyle() {
+// SetDataRowStyle 数据行样式
+func (e *Excel) SetDataRowStyle() {
 	style := excelize.Style{}
 	style.Border = getBorder()
 	style.Alignment = &excelize.Alignment{
@@ -175,7 +181,7 @@ func (e *Excel) getDataRowStyle() {
 	e.ContentStyle2, _ = e.F.NewStyle(&style)
 }
 
-// 判断数组中是否包含指定元素
+// IsContain 判断数组中是否包含指定元素
 func IsContain(items interface{}, item interface{}) bool {
 	switch items.(type) {
 	case []int:

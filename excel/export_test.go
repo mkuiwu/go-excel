@@ -82,7 +82,7 @@ func TestExportSheets(t *testing.T) {
 	// 获取导出的数据
 	changeHead := map[string]string{"Id": "账号", "Name": "真实姓名"}
 	// 多个sheet导出
-	e := model.ExcelInit()
+	e := model.NewExcel()
 	for i := 0; i < 3; i++ {
 		sheet := "Sheet" + fmt.Sprintf("%d", i+1)
 		title := "用户信息" + fmt.Sprintf("%d", i+1)

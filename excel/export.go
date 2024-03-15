@@ -95,7 +95,7 @@ func buildCustomHeader(heads interface{}, sheet, title string) (*model.Excel, []
 	default:
 		return nil, nil, "", 0, errors.New("表头格式错误")
 	}
-	e := model.ExcelInit()
+	e := model.NewExcel()
 	index, _ := e.F.GetSheetIndex(sheet)
 	if index < 0 { // 如果sheet名称不存在
 		e.F.NewSheet(sheet)
@@ -153,7 +153,7 @@ func ExportExcel(sheet, title, fields string, isGhbj, isIgnore bool, list interf
 
 // NormalDynamicExport 导出excel
 func NormalDynamicExport(sheet, title, fields string, isGhbj, isIgnore bool, list interface{}, changeHead map[string]string) (file *excelize.File, err error) {
-	e := model.ExcelInit()
+	e := model.NewExcel()
 	err = ExportExcel(sheet, title, fields, isGhbj, isIgnore, list, changeHead, e)
 	return e.F, err
 }
