@@ -205,7 +205,11 @@ func CustomHeaderExport(sheet, title string, isGhbj bool, heads interface{}, lis
 // 构造表头（endColName 最后一列的列名 dataRow 数据行开始的行号）
 func normalBuildTitle(e *model.Excel, config *model.ExportConfig, dataValue reflect.Value) (endColName string, dataRow int, err error) {
 	dataType := dataValue.Type().Elem() // 获取导入目标对象的类型信息
-	var exportTitle []model.ExcelTag    // 遍历目标对象的字段
+	if dataType.Kind() == reflect.Ptr {
+		// 获取指针指向的类型
+		dataType = dataType.Elem()
+	}
+	var exportTitle []model.ExcelTag // 遍历目标对象的字段
 	for i := 0; i < dataType.NumField(); i++ {
 		var excelTag model.ExcelTag
 		field := dataType.Field(i) // 获取字段信息和tag
@@ -257,6 +261,9 @@ func normalBuildDataRow(buildReq *model.DataRowBuildReq) (err error) {
 		startCol := fmt.Sprintf("A%d", buildReq.StartRow)
 		endCol := fmt.Sprintf("%s%d", buildReq.EndColName, buildReq.StartRow)
 		item := buildReq.DataValue.Index(i)
+		if item.Kind() == reflect.Ptr {
+			item = item.Elem()
+		}
 		typ := item.Type()
 		num := item.NumField()
 		var exportRow []model.ExcelTag

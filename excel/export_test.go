@@ -44,6 +44,7 @@ func TestExportSheet(t *testing.T) {
 	e := model.NewExcel()
 	e.SetHeadRowStyle()
 	e.SetTitleRowStyle()
+	e.SetDataRowStyle()
 	//单个sheet导出
 	f, err := NormalDynamicExport(&model.ExportConfig{
 		SheetName:      "Sheet1",
@@ -73,7 +74,7 @@ func TestExportSheet(t *testing.T) {
 // 测试转换函数
 func TestConvert(t *testing.T) {
 	// 获取导出的数据
-	dataList := []TestConvertStruct{
+	dataList := []*TestConvertStruct{
 		{"1.23333", "白夜"},
 		{"测试数据", "黑日"},
 	}

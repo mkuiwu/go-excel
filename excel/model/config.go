@@ -47,3 +47,30 @@ type MapExportConfig struct {
 	Title          string
 	IsDefaultStyle bool
 }
+
+func NewExportConfig() *ExportConfig {
+	return &ExportConfig{
+		E: NewExcel(),
+		DynamicColConfig: DynamicColConfig{
+			Fields:   "",
+			IsIgnore: false,
+		},
+		IsDefaultStyle: false,
+		SheetName:      "Sheet1",
+	}
+}
+
+func (e *ExportConfig) SetExportData(exportData interface{}) *ExportConfig {
+	e.ExportData = exportData
+	return e
+}
+
+func (e *ExportConfig) SetTitle(title string) *ExportConfig {
+	e.Title = title
+	return e
+}
+
+func (e *ExportConfig) SetChangeHead(changeHead map[string]string) *ExportConfig {
+	e.ChangeHead = changeHead
+	return e
+}

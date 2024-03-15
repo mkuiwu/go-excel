@@ -173,11 +173,11 @@ func (e *Excel) SetDataRowStyle() {
 		Size: 12,
 	}
 	e.ContentStyle1, _ = e.F.NewStyle(&style)
-	style.Fill = excelize.Fill{ // 背景颜色
+	/*	style.Fill = excelize.Fill{ // 背景颜色
 		Type:    "pattern",
 		Color:   []string{"#cce7f5"},
 		Pattern: 1,
-	}
+	}*/
 	e.ContentStyle2, _ = e.F.NewStyle(&style)
 }
 
