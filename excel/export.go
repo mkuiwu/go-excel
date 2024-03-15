@@ -23,7 +23,7 @@ func GetExcelColumnName(columnNumber int) string {
 	columnName := ""
 	for columnNumber > 0 {
 		columnNumber--
-		columnName = strconv.Itoa('A'+columnNumber%26) + columnName
+		columnName = string(rune('A'+columnNumber%26)) + columnName
 		columnNumber /= 26
 	}
 	return columnName
