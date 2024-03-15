@@ -41,8 +41,22 @@ var testList = []TestStruct{
 func TestExportSheet(t *testing.T) {
 	// 获取导出的数据
 	changeHead := map[string]string{"Id": "账号", "Name": "真实姓名"}
+	e := model.NewExcel()
+	e.SetHeadRowStyle()
+	e.SetTitleRowStyle()
 	//单个sheet导出
-	f, err := NormalDynamicExport("Sheet1", "用户信息", "Id,Email,", true, true, testList, changeHead)
+	f, err := NormalDynamicExport(&model.ExportConfig{
+		SheetName:      "Sheet1",
+		Title:          "用户信息",
+		IsDefaultStyle: true,
+		ExportData:     testList,
+		ChangeHead:     changeHead,
+		/*		DynamicColConfig: model.DynamicColConfig{
+				Fields:   "Id,Email",
+				IsIgnore: true,
+			},*/
+		E: e,
+	})
 	//f, err := NormalDynamicExport(testList, "Sheet1", "用户信息", "", true, false, changeHead)
 	if err != nil {
 		fmt.Println(err)
@@ -64,7 +78,14 @@ func TestConvert(t *testing.T) {
 		{"测试数据", "黑日"},
 	}
 	//单个sheet导出
-	f, err := NormalDynamicExport("Sheet1", "用户信息", "", true, false, dataList, nil)
+	f, err := NormalDynamicExport(&model.ExportConfig{
+		SheetName:        "Sheet1",
+		Title:            "用户信息",
+		IsDefaultStyle:   true,
+		ExportData:       dataList,
+		ChangeHead:       nil,
+		DynamicColConfig: model.DynamicColConfig{},
+	})
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -83,12 +104,21 @@ func TestExportSheets(t *testing.T) {
 	changeHead := map[string]string{"Id": "账号", "Name": "真实姓名"}
 	// 多个sheet导出
 	e := model.NewExcel()
+	e.SetTitleRowStyle()
 	for i := 0; i < 3; i++ {
 		sheet := "Sheet" + fmt.Sprintf("%d", i+1)
 		title := "用户信息" + fmt.Sprintf("%d", i+1)
 		fmt.Println(sheet)
 		// 其实就是相当于普通sheet导出，只不过是每个sheet分别传对应的数据过去
-		err := ExportExcel(sheet, title, "", true, false, testList, changeHead, e)
+		err := ExportExcel(&model.ExportConfig{
+			SheetName:        sheet,
+			Title:            title,
+			IsDefaultStyle:   true,
+			ExportData:       testList,
+			ChangeHead:       changeHead,
+			DynamicColConfig: model.DynamicColConfig{},
+			E:                e,
+		})
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -112,7 +142,13 @@ func TestExportMap(t *testing.T) {
 		{"Name": "陈悦", "Email": "chenyue@qq.com", "City": "深圳"},
 		{"Name": "鹤熙", "Email": "hexi@123.com", "City": "广州"},
 	}
-	f, err := MapExport(header, data, "Sheet1", "", false)
+	f, err := MapExport(&model.MapExportConfig{
+		Heads:          header,
+		ExportData:     data,
+		SheetName:      "Sheet1",
+		Title:          "",
+		IsDefaultStyle: false,
+	})
 	if err != nil {
 		fmt.Println("导出失败", err)
 		return
@@ -192,7 +228,14 @@ func TestExportHorizontal(t *testing.T) {
 		{"chenyue", "chenyue", "chenyue@123.com", "天命科技有限公司", true, "2", 124}, // A7:B7 , E7:F7
 		{"鹤熙", "鹤熙", "鹤熙", "天命科技有限公司", true, "2", 124},                        // A8:C8 , E8:F8
 	}
-	f, err := NormalDynamicExport("Sheet1", "", "", false, false, data, nil)
+	f, err := NormalDynamicExport(&model.ExportConfig{
+		SheetName:        "Sheet1",
+		Title:            "",
+		IsDefaultStyle:   false,
+		ExportData:       data,
+		ChangeHead:       nil,
+		DynamicColConfig: model.DynamicColConfig{},
+	})
 	// map数据导出
 	/*header := []string{"账号", "姓名", "部门", "角色", "备注"}
 	var data = []map[string]interface{}{
@@ -237,7 +280,13 @@ func TestExportVertical(t *testing.T) {
 		{"所属公司": "天命科技", "所属部门": "研发部", "姓名": "月轮", "职位": "组长", "联系电话": "45645"},
 		{"所属公司": "天命科技", "所属部门": "研发部", "姓名": "迅羽", "职位": "组长", "联系电话": "45645"},
 	}
-	f, err := MapExport(header, data, "Sheet1", "", false)
+	f, err := MapExport(&model.MapExportConfig{
+		Heads:          header,
+		ExportData:     data,
+		SheetName:      "Sheet1",
+		Title:          "",
+		IsDefaultStyle: false,
+	})
 	if err != nil {
 		panic(err)
 	}

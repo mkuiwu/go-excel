@@ -126,36 +126,52 @@ func buildCustomHeader(heads interface{}, sheet, title string) (*model.Excel, []
 }
 
 // ExportExcel excel导出，获取表头、内容数据
-func ExportExcel(sheet, title, fields string, isGhbj, isIgnore bool, list interface{}, changeHead map[string]string, e *model.Excel) (err error) {
-	index, _ := e.F.GetSheetIndex(sheet)
+func ExportExcel(config *model.ExportConfig) (err error) {
+	index, _ := config.E.F.GetSheetIndex(config.SheetName)
 	if index < 0 { // 如果sheet名称不存在
-		e.F.NewSheet(sheet)
+		_, err = config.E.F.NewSheet(config.SheetName)
+		if err != nil {
+			return err
+		}
 	}
 	// 构造excel表格
 	// 取目标对象的元素类型、字段类型和 tag
-	dataValue := reflect.ValueOf(list)
+	dataValue := reflect.ValueOf(config.ExportData)
 	// 判断数据的类型
 	if dataValue.Kind() != reflect.Slice {
 		err = errors.New("invalid data type")
 		return
 	}
 	// 构造表头
-	endColName, dataRow, err := normalBuildTitle(e, sheet, title, fields, isIgnore, changeHead, dataValue)
+	endColName, dataRow, err := normalBuildTitle(config.E, config, dataValue)
 	if err != nil {
 		return
 	}
 	// 构造数据行
-	err = normalBuildDataRow(e, sheet, endColName, fields, dataRow, isGhbj, isIgnore, dataValue)
+	err = normalBuildDataRow(&model.DataRowBuildReq{
+		Excel:          config.E,
+		SheetName:      config.SheetName,
+		EndColName:     endColName,
+		StartRow:       dataRow,
+		IsDefaultStyle: config.IsDefaultStyle,
+		DataValue:      dataValue,
+		DynamicColConfig: model.DynamicColConfig{
+			Fields:   config.Fields,
+			IsIgnore: config.IsIgnore,
+		},
+	})
 	return
 }
 
 // ================================= 普通导出 =================================
 
 // NormalDynamicExport 导出excel
-func NormalDynamicExport(sheet, title, fields string, isGhbj, isIgnore bool, list interface{}, changeHead map[string]string) (file *excelize.File, err error) {
-	e := model.NewExcel()
-	err = ExportExcel(sheet, title, fields, isGhbj, isIgnore, list, changeHead, e)
-	return e.F, err
+func NormalDynamicExport(config *model.ExportConfig) (file *excelize.File, err error) {
+	if config.E == nil {
+		config.E = model.NewExcel()
+	}
+	err = ExportExcel(config)
+	return config.E.F, err
 }
 
 // CustomHeaderExport 自定义表头导出
@@ -171,12 +187,23 @@ func CustomHeaderExport(sheet, title string, isGhbj bool, heads interface{}, lis
 		return
 	}
 	// 构造数据行
-	err = normalBuildDataRow(e, sheet, endColName, "", dataRow, isGhbj, false, dataValue)
+	err = normalBuildDataRow(&model.DataRowBuildReq{
+		Excel:          e,
+		SheetName:      sheet,
+		EndColName:     endColName,
+		StartRow:       dataRow,
+		IsDefaultStyle: isGhbj,
+		DataValue:      dataValue,
+		DynamicColConfig: model.DynamicColConfig{
+			Fields:   "",
+			IsIgnore: false,
+		},
+	})
 	return e.F, err
 }
 
 // 构造表头（endColName 最后一列的列名 dataRow 数据行开始的行号）
-func normalBuildTitle(e *model.Excel, sheet, title, fields string, isIgnore bool, changeHead map[string]string, dataValue reflect.Value) (endColName string, dataRow int, err error) {
+func normalBuildTitle(e *model.Excel, config *model.ExportConfig, dataValue reflect.Value) (endColName string, dataRow int, err error) {
 	dataType := dataValue.Type().Elem() // 获取导入目标对象的类型信息
 	var exportTitle []model.ExcelTag    // 遍历目标对象的字段
 	for i := 0; i < dataType.NumField(); i++ {
@@ -186,11 +213,11 @@ func normalBuildTitle(e *model.Excel, sheet, title, fields string, isIgnore bool
 		if tag == "" { // 如果非导出则跳过
 			continue
 		}
-		if fields != "" { // 选择要导出或要忽略的字段
-			if isIgnore && strings.Contains(fields, field.Name+",") { // 忽略指定字段
+		if config.Fields != "" { // 选择要导出或要忽略的字段
+			if config.IsIgnore && strings.Contains(config.Fields, field.Name) { // 忽略指定字段
 				continue
 			}
-			if !isIgnore && !strings.Contains(fields, field.Name+",") { // 导出指定字段
+			if !config.IsIgnore && !strings.Contains(config.Fields, field.Name) { // 导出指定字段
 				continue
 			}
 		}
@@ -199,8 +226,8 @@ func normalBuildTitle(e *model.Excel, sheet, title, fields string, isIgnore bool
 			return
 		}
 		// 更改指定字段的表头标题
-		if changeHead != nil && changeHead[field.Name] != "" {
-			excelTag.Name = changeHead[field.Name]
+		if config.ChangeHead != nil && config.ChangeHead[field.Name] != "" {
+			excelTag.Name = config.ChangeHead[field.Name]
 		}
 		exportTitle = append(exportTitle, excelTag)
 	}
@@ -212,24 +239,24 @@ func normalBuildTitle(e *model.Excel, sheet, title, fields string, isIgnore bool
 	for i, colTitle := range exportTitle {
 		endColName := GetExcelColumnName(i + 1)
 		if colTitle.Width > 0 { // 根据给定的宽度设置列宽
-			_ = e.F.SetColWidth(sheet, endColName, endColName, float64(colTitle.Width))
+			_ = e.F.SetColWidth(config.SheetName, endColName, endColName, float64(colTitle.Width))
 		} else {
-			_ = e.F.SetColWidth(sheet, endColName, endColName, float64(20)) // 默认宽度为20
+			_ = e.F.SetColWidth(config.SheetName, endColName, endColName, float64(20)) // 默认宽度为20
 		}
 		titleRowData = append(titleRowData, colTitle.Name)
 	}
 	endColName = GetExcelColumnName(len(titleRowData)) // 根据列数生成 Excel 列名
-	dataRow, err = buildTitleHeader(e, sheet, title, endColName, &titleRowData)
+	dataRow, err = buildTitleHeader(e, config.SheetName, config.Title, endColName, &titleRowData)
 	return
 }
 
 // 构造数据行
-func normalBuildDataRow(e *model.Excel, sheet, endColName, fields string, row int, isGhbj, isIgnore bool, dataValue reflect.Value) (err error) {
+func normalBuildDataRow(buildReq *model.DataRowBuildReq) (err error) {
 	//实时写入数据
-	for i := 0; i < dataValue.Len(); i++ {
-		startCol := fmt.Sprintf("A%d", row)
-		endCol := fmt.Sprintf("%s%d", endColName, row)
-		item := dataValue.Index(i)
+	for i := 0; i < buildReq.DataValue.Len(); i++ {
+		startCol := fmt.Sprintf("A%d", buildReq.StartRow)
+		endCol := fmt.Sprintf("%s%d", buildReq.EndColName, buildReq.StartRow)
+		item := buildReq.DataValue.Index(i)
 		typ := item.Type()
 		num := item.NumField()
 		var exportRow []model.ExcelTag
@@ -241,11 +268,11 @@ func normalBuildDataRow(e *model.Excel, sheet, endColName, fields string, row in
 			if tagVal == "" { // 如果非导出则跳过
 				continue
 			}
-			if fields != "" { // 选择要导出或要忽略的字段
-				if isIgnore && strings.Contains(fields, dataField.Name+",") { // 忽略指定字段
+			if buildReq.Fields != "" { // 选择要导出或要忽略的字段
+				if buildReq.IsIgnore && strings.Contains(buildReq.Fields, dataField.Name+",") { // 忽略指定字段
 					continue
 				}
-				if !isIgnore && !strings.Contains(fields, dataField.Name+",") { // 导出指定字段
+				if !buildReq.IsIgnore && !strings.Contains(buildReq.Fields, dataField.Name+",") { // 导出指定字段
 					continue
 				}
 			}
@@ -296,22 +323,22 @@ func normalBuildDataRow(e *model.Excel, sheet, endColName, fields string, row in
 		for _, colTitle := range exportRow {
 			rowData = append(rowData, colTitle.Value)
 		}
-		if isGhbj && row%2 == 0 {
-			_ = e.F.SetCellStyle(sheet, startCol, endCol, e.ContentStyle2)
+		if buildReq.IsDefaultStyle && buildReq.StartRow%2 == 0 {
+			_ = buildReq.Excel.F.SetCellStyle(buildReq.SheetName, startCol, endCol, buildReq.Excel.ContentStyle2)
 		} else {
-			_ = e.F.SetCellStyle(sheet, startCol, endCol, e.ContentStyle1)
+			_ = buildReq.Excel.F.SetCellStyle(buildReq.SheetName, startCol, endCol, buildReq.Excel.ContentStyle1)
 		}
 		if maxLen > 25 { // 自适应行高
 			d := maxLen / 25
 			f := 25 * d
-			_ = e.F.SetRowHeight(sheet, row, float64(f))
+			_ = buildReq.Excel.F.SetRowHeight(buildReq.SheetName, buildReq.StartRow, float64(f))
 		} else {
-			_ = e.F.SetRowHeight(sheet, row, float64(25)) // 默认行高25
+			_ = buildReq.Excel.F.SetRowHeight(buildReq.SheetName, buildReq.StartRow, float64(25)) // 默认行高25
 		}
-		if err = e.F.SetSheetRow(sheet, startCol, &rowData); err != nil {
+		if err = buildReq.Excel.F.SetSheetRow(buildReq.SheetName, startCol, &rowData); err != nil {
 			return
 		}
-		row++
+		buildReq.StartRow++
 	}
 	return
 }
@@ -319,13 +346,13 @@ func normalBuildDataRow(e *model.Excel, sheet, endColName, fields string, row in
 // ================================= 基于map导出 =================================
 
 // MapExport map导出
-func MapExport(heads interface{}, list []map[string]interface{}, sheet, title string, isGhbj bool) (file *excelize.File, err error) {
-	e, lastRowHead, endColName, dataRow, err := buildCustomHeader(heads, sheet, title)
+func MapExport(req *model.MapExportConfig) (file *excelize.File, err error) {
+	e, lastRowHead, endColName, dataRow, err := buildCustomHeader(req.Heads, req.SheetName, req.Title)
 	if err != nil {
 		return nil, err
 	}
 	// 构建数据行
-	for _, rowData := range list {
+	for _, rowData := range req.ExportData {
 		startCol := fmt.Sprintf("A%d", dataRow)
 		endCol := fmt.Sprintf("%s%d", endColName, dataRow)
 		row := make([]interface{}, 0)
@@ -334,13 +361,13 @@ func MapExport(heads interface{}, list []map[string]interface{}, sheet, title st
 				row = append(row, val)
 			}
 		}
-		if isGhbj && dataRow%2 == 0 {
-			_ = e.F.SetCellStyle(sheet, startCol, endCol, e.ContentStyle2)
+		if req.IsDefaultStyle && dataRow%2 == 0 {
+			_ = e.F.SetCellStyle(req.SheetName, startCol, endCol, e.ContentStyle2)
 		} else {
-			_ = e.F.SetCellStyle(sheet, startCol, endCol, e.ContentStyle1)
+			_ = e.F.SetCellStyle(req.SheetName, startCol, endCol, e.ContentStyle1)
 		}
-		_ = e.F.SetRowHeight(sheet, dataRow, float64(25)) // 默认行高25
-		if err := e.F.SetSheetRow(sheet, fmt.Sprintf("A%d", dataRow), &row); err != nil {
+		_ = e.F.SetRowHeight(req.SheetName, dataRow, float64(25)) // 默认行高25
+		if err := e.F.SetSheetRow(req.SheetName, fmt.Sprintf("A%d", dataRow), &row); err != nil {
 			return nil, err
 		}
 		dataRow++
